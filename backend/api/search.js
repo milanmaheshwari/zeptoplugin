@@ -1,27 +1,23 @@
 const axios = require('axios');
-const cheerio = require('cheerio');
 
 module.exports = async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
 
   const query = req.query.q || '';
-  const url = `https://www.zeptonow.com/search?q=${encodeURIComponent(query)}`;
+  const url = `https://www.zeptonow.com/api/v1/search?q=${encodeURIComponent(query)}&city=Bangalore`;
 
   try {
     const response = await axios.get(url);
-    const $ = cheerio.load(response.data);
+    const products = response.data?.products || [];
 
-    const products = [];
+    const simplified = products.map(p => ({
+      title: p.name,
+      image: p.image_url
+    }));
 
-    $('[data-testid="ProductCard"]').each((_, el) => {
-      const title = $(el).find('h2').text().trim();
-      const image = $(el).find('img').attr('src');
-      if (title && image) products.push({ title, image });
-    });
-
-    res.status(200).json(products);
+    res.status(200).json(simplified);
   } catch (error) {
-    console.error('Scraper error:', error.message);
-    res.status(500).json({ error: 'Scraping failed' });
+    console.error("Zepto API error:", error.message);
+    res.status(500).json({ error: 'Failed to fetch Zepto data' });
   }
 };
